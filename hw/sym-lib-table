@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name CPU_NXP_68001)(type Legacy)(uri ${KIPRJMOD}/CPU_NXP_6800.lib)(options "")(descr ""))
+  (lib (name cbm-steve)(type Legacy)(uri ${KIPRJMOD}/cbm-steve.lib)(options "")(descr ""))
+)
