@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 `define UART_IDLE  0
 `define UART_START 1
 `define UART_TX    2

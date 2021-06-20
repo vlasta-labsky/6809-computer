@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module top(
     input [15:0] ADDR,
     inout [7:0] DATA,
@@ -19,11 +21,34 @@ module top(
 	reg RESET_D, HALT_D, IRQ_D;
 	wire UART;
 
+	reg [13:0] rst_counter;
+
 	initial
 	begin
-		RESET_D = 1'b1;
-		HALT_D  = 1'b1;
-		IRQ_D	= 1'b1;
+		RESET_D     <= 1'b0;
+		rst_counter <= 0;
+		
+		HALT_D      <= 1'b1;
+		IRQ_D	      <= 1'b1;
+	end
+	
+	wire clk_uart;
+	
+	uni_div divUart(.CLK_IN(E), .CLK_OUT(clk_uart));
+	defparam divUart.SIZE = 8;
+	defparam divUart.DIV = 208;
+	
+	always @(posedge E)
+	begin
+		if(rst_counter < 10000)
+		begin
+			RESET_D     <= 1'b0;
+			rst_counter <= rst_counter + 1;
+		end
+		else
+		begin
+			RESET_D 		<= 1'b1;
+		end
 	end
 	
 	assign RESET = RESET_D;
@@ -47,7 +72,7 @@ module top(
 
 	uart uart_inst1(
 		.ADDR(ADDR[0:0]), .DATA(UART_DATA), 
-		.W(UART_W), .R(UART_R), .CLK(Q), .TXD(TXD)
+		.W(UART_W), .R(UART_R), .CLK(clk_uart), .TXD(TXD)
 	);
 	
 	
@@ -59,7 +84,7 @@ module top(
 
 	uart uart_inst2(
 		.ADDR(ADDR[0:0]), .DATA(UART2_DATA),
-		.W(UART2_W), .R(UART2_R), .CLK(Q), .TXD(TXD2)
+		.W(UART2_W), .R(UART2_R), .CLK(clk_uart), .TXD(TXD2)
 	);
 	
 	assign DATA[7:0] = !UART_R  ? UART_DATA[7:0] 
