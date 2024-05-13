@@ -10,26 +10,23 @@ module top(
     output ROM,
     input E,
     input Q,
-    output RESET,
+    input RESET,
     output HALT,
     output IRQ,
 	 
 	 output TXD,
-	 output TXD2
+	 output TXD2,
+	 
+	 input KEYBOARD_CLK,
+	 input KEYBOARD_DATA
     );
 
-	reg RESET_D, HALT_D, IRQ_D;
+	reg HALT_D;
 	wire UART;
-
-	reg [13:0] rst_counter;
 
 	initial
 	begin
-		RESET_D     <= 1'b0;
-		rst_counter <= 0;
-		
 		HALT_D      <= 1'b1;
-		IRQ_D	      <= 1'b1;
 	end
 	
 	wire clk_uart;
@@ -38,27 +35,13 @@ module top(
 	defparam divUart.SIZE = 8;
 	defparam divUart.DIV = 208;
 	
-	always @(posedge E)
-	begin
-		if(rst_counter < 10000)
-		begin
-			RESET_D     <= 1'b0;
-			rst_counter <= rst_counter + 1;
-		end
-		else
-		begin
-			RESET_D 		<= 1'b1;
-		end
-	end
-	
-	assign RESET = RESET_D;
 	assign HALT = HALT_D;
-	assign IRQ = IRQ_D;
 
 	assign RAM = ADDR[15:15];
 	assign ROM = !(ADDR[15:15] && ADDR[14:14] && ADDR[13:13]);
 	assign UART = !(ADDR[15:8] == 8'hc0);
 	assign UART2 = !(ADDR[15:8] == 8'hc1);
+	assign PS2 = !(ADDR[15:8] == 8'hc2);
 	
 	assign R = !(RW && E);
 	assign W = !(!RW && E);
@@ -87,8 +70,21 @@ module top(
 		.W(UART2_W), .R(UART2_R), .CLK(clk_uart), .TXD(TXD2)
 	);
 	
+	
+	wire [7:0] PS2_DATA;
+	wire PS2_IRQ;
+	assign PS2_R = !(!PS2 && !R);
+	assign PS2_W = !(!PS2 && !W);
+	assign PS2_DATA[7:0] = !PS2_R ? 8'bz : DATA[7:0];
+	
+	ps2 ps2_inst1(.ADDR(ADDR[0:0]), .DATA(PS2_DATA), .R(PS2_R), .IRQ(PS2_IRQ),
+	              .KEYBOARD_CLK(KEYBOARD_CLK), .KEYBOARD_DATA(KEYBOARD_DATA));
+	
 	assign DATA[7:0] = !UART_R  ? UART_DATA[7:0] 
 	                 : !UART2_R ? UART2_DATA[7:0] 
+						  : !PS2_R ? PS2_DATA[7:0]
 						  : 8'bz;
+						  
+	assign IRQ = !PS2_IRQ;
 						  
 endmodule
